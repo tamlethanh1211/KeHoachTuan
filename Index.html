@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="YT Studio Pro">
+    <title>YT Studio Pro - Creator Dashboard</title>
+    
+    <link id="manifest-link" rel="manifest" href="">
+    <link id="apple-touch-icon" rel="apple-touch-icon" href="">
+
+    <style>
+        /* =========================================
+           CSS VARIABLES (Pro Dark Glass Theme)
+        ========================================= */
+        :root {
+            --bg-base: #000000;
+            --bg-texture: radial-gradient(circle at 15% 50%, rgba(20, 40, 80, 0.4), transparent 50%), 
+                          radial-gradient(circle at 85% 30%, rgba(48, 209, 88, 0.15), transparent 50%);
+            --glass-bg: rgba(30, 30, 32, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #FFFFFF;
+            --text-sec: #8E8E93;
+            --accent-green: #32D74B;
+            --accent-blue: #0A84FF;
+            --accent-purple: #BF5AF2;
+            --us-color: #0A84FF; --vn-color: #FF453A; --vlog-color: #FF9F0A;
+            --radius-lg: 24px; --radius-md: 16px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; -webkit-tap-highlight-color: transparent; }
+
+        body { background: var(--bg-base); background-image: var(--bg-texture); background-attachment: fixed; color: var(--text-main); height: 100vh; display: flex; overflow: hidden; }
+
+        /* =========================================
+           RESPONSIVE LAYOUT (iPad/Desktop vs iPhone)
+        ========================================= */
+        .sidebar {
+            width: 250px; background: rgba(20, 20, 22, 0.8); backdrop-filter: blur(20px); border-right: 1px solid var(--glass-border);
+            padding: env(safe-area-inset-top, 20px) 16px 20px 16px; display: flex; flex-direction: column; gap: 10px; z-index: 50;
+        }
+        .main-content {
+            flex: 1; height: 100vh; overflow-y: auto; padding: env(safe-area-inset-top, 20px) 24px 100px 24px;
+        }
+
+        /* Nav Items */
+        .nav-item {
+            padding: 14px 20px; border-radius: 14px; font-weight: 600; font-size: 16px; color: var(--text-sec);
+            cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s;
+        }
+        .nav-item.active { background: rgba(255,255,255,0.1); color: var(--text-main); }
+        .nav-item i { font-style: normal; font-size: 20px; }
+
+        /* Mobile Bottom Tab */
+        .bottom-tab { display: none; }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { padding: env(safe-area-inset-top, 20px) 16px 120px 16px; }
+            .bottom-tab {
+                display: flex; justify-content: space-around; align-items: center;
+                position: fixed; bottom: 0; left: 0; right: 0; padding-bottom: env(safe-area-inset-bottom, 20px); height: calc(65px + env(safe-area-inset-bottom, 20px));
+                background: rgba(20, 20, 22, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+                border-top: 1px solid var(--glass-border); z-index: 50;
+            }
+            .bottom-tab .nav-item { flex-direction: column; gap: 4px; padding: 10px; font-size: 11px; background: none !important; }
+            .bottom-tab .nav-item.active { color: var(--accent-green); }
+            .bottom-tab .nav-item i { font-size: 24px; }
+        }
+
+        /* =========================================
+           GLASS CARDS & UI ELEMENTS
+        ========================================= */
+        .glass-card {
+            background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 24px;
+        }
+        .view-section { display: none; animation: fadeIn 0.4s ease; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h1.page-title { font-size: 32px; font-weight: 700; margin-bottom: 24px; letter-spacing: -0.5px; }
+        h2.section-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--text-sec); text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- Dashboard Rings --- */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .ring-container { display: flex; align-items: center; gap: 20px; }
+        .ring {
+            width: 80px; height: 80px; border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            background: conic-gradient(var(--accent-green) 0%, #333 0%); position: relative;
+        }
+        .ring::after { content: ''; position: absolute; width: 64px; height: 64px; background: var(--bg-base); border-radius: 50%; }
+        .ring-value { position: relative; z-index: 1; font-weight: 700; font-size: 18px; }
+
+        /* --- Revenue Progress --- */
+        .progress-track { height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden; margin-top: 10px; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple)); width: 0%; transition: 1s ease-out; }
+        
+        .rev-text { display: flex; justify-content: space-between; margin-top: 8px; font-size: 14px; font-weight: 600; }
+        
+        /* --- iOS Calendar --- */
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 20px; font-weight: bold; }
+        .calendar-nav { background: none; border: none; color: var(--accent-green); font-size: 24px; cursor: pointer; padding: 0 10px;}
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
+        .day-name { font-size: 12px; color: var(--text-sec); font-weight: 600; margin-bottom: 10px; }
+        .day-cell {
+            aspect-ratio: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            font-size: 16px; font-weight: 500; border-radius: 50%; cursor: pointer; transition: 0.2s; position: relative;
+        }
+        .day-cell.other-month { color: #444; }
+        .day-cell.today { background: var(--accent-green); color: #000; font-weight: bold; }
+        .day-cell.selected { border: 2px solid var(--text-main); }
+        .day-dots { display: flex; gap: 2px; margin-top: 2px; position: absolute; bottom: 4px; }
+        .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--us-color); }
+
+        /* --- Task List --- */
+        .task-item { display: flex; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--glass-border); gap: 14px; }
+        .task-item:last-child { border-bottom: none; }
+        .checkbox { width: 24px; height: 24px; border: 2px solid var(--text-sec); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .task-item.completed .checkbox { background: var(--accent-green); border-color: var(--accent-green); color: #000; font-weight: bold; }
+        .task-item.completed .task-title { text-decoration: line-through; color: var(--text-sec); }
+        .task-info { flex: 1; }
+        .task-title { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+        .task-meta { display: flex; gap: 8px; align-items: center; }
+        .tag { font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 600; }
+        .revenue-tag { font-size: 11px; color: var(--accent-green); font-weight: bold; background: rgba(50,215,75,0.15); padding: 3px 8px; border-radius: 6px;}
+
+        /* FAB Button */
+        .fab { position: fixed; bottom: calc(80px + env(safe-area-inset-bottom, 20px)); right: 20px; width: 60px; height: 60px; border-radius: 30px; background: var(--accent-green); color: #000; font-size: 32px; border: none; box-shadow: 0 4px 20px rgba(50, 215, 75, 0.4); z-index: 40; }
+        @media (min-width: 769px) { .fab { bottom: 40px; right: 40px; } }
+
+        /* Modals */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); display: flex; justify-content: center; align-items: flex-end; z-index: 100; opacity: 0; pointer-events: none; transition: 0.3s; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content { background: var(--glass-bg); width: 100%; max-width: 600px; padding: 24px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; border: 1px solid var(--glass-border); transform: translateY(100%); transition: 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+        @media (min-width: 769px) { .modal-overlay { align-items: center; } .modal-content { border-radius: var(--radius-lg); transform: translateY(20px) scale(0.95); } .modal-overlay.active .modal-content { transform: translateY(0) scale(1); } }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+        
+        .input-group { margin-bottom: 16px; }
+        .input-group label { display: block; font-size: 13px; color: var(--text-sec); margin-bottom: 8px; text-transform: uppercase; font-weight: 600;}
+        .modal-input { width: 100%; padding: 14px; background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); border-radius: 12px; color: #fff; font-size: 16px; outline: none; }
+        .modal-input:focus { border-color: var(--accent-blue); }
+        .btn-save { width: 100%; padding: 16px; background: var(--accent-green); color: #000; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        
+        /* Flex row for split inputs */
+        .input-row { display: flex; gap: 10px; }
+        .input-row > div { flex: 1; }
+
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR (Desktop/iPad) -->
+    <nav class="sidebar">
+        <h2 style="padding: 10px 20px; font-size: 22px; color: #fff; margin-bottom: 20px;">YT Studio <span style="color:var(--accent-green)">Pro</span></h2>
+        <div class="nav-item active" onclick="app.switchTab('dashboard')"><i>📊</i> Tổng quan</div>
+        <div class="nav-item" onclick="app.switchTab('calendar')"><i>📅</i> Lịch xuất bản</div>
+        <div class="nav-item" onclick="app.switchTab('goals')"><i>🎯</i> Cài đặt Mục tiêu</div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        
+        <!-- DASHBOARD VIEW -->
+        <section id="view-dashboard" class="view-section active">
+            <h1 class="page-title">Tổng quan Tháng</h1>
+            <div class="dashboard-grid">
+                
+                <!-- Mục tiêu Công việc -->
+                <div class="glass-card ring-container" onclick="app.switchTab('goals')" style="cursor:pointer">
+                    <div class="ring" id="task-ring">
+                        <span class="ring-value" id="task-percent">0%</span>
+                    </div>
+                    <div>
+                        <div style="color:var(--text-sec); font-size:14px; margin-bottom:4px;">Tiến độ Video</div>
+                        <div style="font-size:22px; font-weight:700;"><span id="task-done">0</span> / <span id="task-total">0</span></div>
+                        <div style="font-size:12px; color:var(--accent-green); margin-top:4px;">Hoàn thành xuất sắc 🚀</div>
+                    </div>
+                </div>
+
+                <!-- Mục tiêu Doanh thu -->
+                <div class="glass-card" onclick="app.switchTab('goals')" style="cursor:pointer">
+                    <div style="color:var(--text-sec); font-size:14px; margin-bottom:8px;">Doanh thu (VND)</div>
+                    <div style="font-size:28px; font-weight:700; color:var(--accent-blue);" id="rev-current">0đ</div>
+                    
+                    <div class="progress-track">
+                        <div class="progress-fill" id="rev-bar"></div>
+                    </div>
+                    <div class="rev-text">
+                        <span>Đã đạt <span id="rev-percent">0</span>%</span>
+                        <span id="rev-target" style="color:var(--text-sec)">Mục tiêu: 0đ</span>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="section-title" style="margin-top: 20px;">Công việc Hôm nay</h2>
+            <div class="glass-card" id="today-tasks-container">
+                <!-- JS Render Today Tasks -->
+            </div>
+        </section>
+
+        <!-- CALENDAR VIEW -->
+        <section id="view-calendar" class="view-section">
+            <h1 class="page-title">Lịch trình</h1>
+            <div class="glass-card">
+                <div class="calendar-header">
+                    <button class="calendar-nav" onclick="app.changeMonth(-1)">‹</button>
+                    <span id="month-year-display">Tháng 8, 2026</span>
+                    <button class="calendar-nav" onclick="app.changeMonth(1)">›</button>
+                </div>
+                <div class="calendar-grid">
+                    <div class="day-name">T2</div><div class="day-name">T3</div><div class="day-name">T4</div>
+                    <div class="day-name">T5</div><div class="day-name">T6</div><div class="day-name">T7</div><div class="day-name">CN</div>
+                    <!-- JS Render Grid -->
+                </div>
+            </div>
+
+            <h2 class="section-title" id="selected-date-title">Chi tiết ngày</h2>
+            <div class="glass-card" id="selected-day-tasks">
+                <!-- JS Render Tasks -->
+            </div>
+        </section>
+
+        <!-- GOALS VIEW -->
+        <section id="view-goals" class="view-section">
+            <h1 class="page-title">Mục tiêu & Cài đặt</h1>
+            <div class="glass-card">
+                <div class="input-group">
+                    <label>Mục tiêu Video Tháng này</label>
+                    <textarea id="setting-work-goal" class="modal-input" rows="3" placeholder="Ví dụ: Đạt 100k sub, đăng 15 video..."></textarea>
+                </div>
+                <div class="input-group">
+                    <label>Mục tiêu Doanh thu (VND)</label>
+                    <input type="number" id="setting-rev-goal" class="modal-input" placeholder="Ví dụ: 20000000">
+                </div>
+                <button class="btn-save" onclick="app.saveSettings()">Cập nhật Hệ thống</button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MOBILE BOTTOM TAB -->
+    <nav class="bottom-tab">
+        <div class="nav-item active" onclick="app.switchTab('dashboard')"><i>📊</i> Tổng quan</div>
+        <div class="nav-item" onclick="app.switchTab('calendar')"><i>📅</i> Lịch</div>
+        <div class="nav-item" onclick="app.switchTab('goals')"><i>🎯</i> Mục tiêu</div>
+    </nav>
+
+    <!-- FAB Button -->
+    <button class="fab" onclick="app.openTaskModal()">+</button>
+
+    <!-- MODAL: ADD TASK -->
+    <div class="modal-overlay" id="task-modal" onclick="if(event.target===this) app.closeTaskModal()">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px;">Thêm Video / Công việc</h2>
+            
+            <div class="input-group">
+                <label>Tên Video</label>
+                <input type="text" id="task-title" class="modal-input" placeholder="Tiêu đề video..." autocomplete="off">
+            </div>
+            
+            <div class="input-row">
+                <div class="input-group">
+                    <label>Ngày xuất bản</label>
+                    <input type="date" id="task-date" class="modal-input">
+                </div>
+                <div class="input-group">
+                    <label>Phân loại</label>
+                    <select id="task-type" class="modal-input">
+                        <option value="us">US ($)</option>
+                        <option value="vn">Việt Nam</option>
+                        <option value="vlog">Vlog</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Dự kiến Doanh thu / Booking (VND) - Bỏ trống nếu 0</label>
+                <input type="number" id="task-rev" class="modal-input" placeholder="Ví dụ: 5000000">
+            </div>
+
+            <button class="btn-save" onclick="app.saveTask()">Lưu vào Lịch</button>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // INJECT PWA MANIFEST 
+        // ==========================================
+        (function setupPWA() {
+            const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512; const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,512,512); ctx.fillStyle = '#32D74B'; ctx.beginPath(); ctx.roundRect(20, 20, 472, 472, 100); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.font = 'bold 200px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('PRO', 256, 260);
+            const iconDataUrl = canvas.toDataURL('image/png'); document.getElementById('apple-touch-icon').href = iconDataUrl;
+            const manifest = { "name": "YT Studio Pro", "short_name": "Studio Pro", "start_url": ".", "display": "standalone", "background_color": "#000000", "theme_color": "#000000", "icons": [{ "src": iconDataUrl, "sizes": "512x512", "type": "image/png" }] };
+            document.getElementById('manifest-link').href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/json' }));
+        })();
+
+        // ==========================================
+        // LOGIC & DATA
+        // ==========================================
+        const Storage = {
+            get() { 
+                return JSON.parse(localStorage.getItem('yt_pro_db')) || { 
+                    settings: { workGoal: "Nỗ lực đạt nút Bạc!", revGoal: 10000000 }, 
+                    tasks: [] // {id, date: 'YYYY-MM-DD', title, type, rev, completed}
+                }; 
+            },
+            save(data) { localStorage.setItem('yt_pro_db', JSON.stringify(data)); }
+        };
+
+        const app = {
+            data: Storage.get(),
+            currentDate: new Date(), // Tháng đang xem trên lịch
+            selectedDateStr: new Date().toISOString().split('T')[0], // Ngày đang chọn để xem chi tiết
+
+            init() {
+                this.renderDashboard();
+                this.renderCalendar();
+                this.renderSelectedDayTasks();
+                // Điền data vào trang Settings
+                document.getElementById('setting-work-goal').value = this.data.settings.workGoal;
+                document.getElementById('setting-rev-goal').value = this.data.settings.revGoal;
+            },
+
+            // --- NAVIGATION ---
+            switchTab(tabId) {
+                // Đổi Tab UI
+                document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+                document.getElementById(`view-${tabId}`).classList.add('active');
+                
+                // Đổi màu Nav Item
+                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+                event.currentTarget.classList.add('active');
+
+                // Sync Desktop vs Mobile Nav
+                const index = Array.from(event.currentTarget.parentNode.children).indexOf(event.currentTarget) - (window.innerWidth > 768 ? 1 : 0);
+                if(window.innerWidth <= 768) document.querySelector(`.sidebar`).children[index+1].classList.add('active');
+                else document.querySelector(`.bottom-tab`).children[index].classList.add('active');
+
+                if(tabId === 'dashboard') this.renderDashboard();
+            },
+
+            // --- DASHBOARD CALCULATION ---
+            formatCurrency(num) { return new Intl.NumberFormat('vi-VN').format(num) + 'đ'; },
+            
+            renderDashboard() {
+                const now = new Date();
+                const currentMonthPrefix = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2, '0')}`;
+                
+                // Lấy task trong tháng hiện tại
+                const monthTasks = this.data.tasks.filter(t => t.date.startsWith(currentMonthPrefix));
+                const completed = monthTasks.filter(t => t.completed);
+                
+                // Tính tiến độ Video
+                const taskTotal = monthTasks.length;
+                const taskDone = completed.length;
+                const taskPercent = taskTotal === 0 ? 0 : Math.round((taskDone/taskTotal)*100);
+                
+                document.getElementById('task-total').innerText = taskTotal;
+                document.getElementById('task-done').innerText = taskDone;
+                document.getElementById('task-percent').innerText = `${taskPercent}%`;
+                document.getElementById('task-ring').style.background = `conic-gradient(var(--accent-green) ${taskPercent}%, #333 ${taskPercent}%)`;
+
+                // Tính Doanh thu (Từ các task đã hoàn thành có doanh thu)
+                const revCurrent = completed.reduce((sum, t) => sum + (Number(t.rev) || 0), 0);
+                const revTarget = Number(this.data.settings.revGoal) || 1;
+                const revPercent = Math.min(Math.round((revCurrent/revTarget)*100), 100);
+
+                document.getElementById('rev-current').innerText = this.formatCurrency(revCurrent);
+                document.getElementById('rev-target').innerText = `Mục tiêu: ${this.formatCurrency(revTarget)}`;
+                document.getElementById('rev-percent').innerText = revPercent;
+                document.getElementById('rev-bar').style.width = `${revPercent}%`;
+
+                // Render Today Tasks (Dashboard)
+                const todayStr = now.toISOString().split('T')[0];
+                const todayTasks = this.data.tasks.filter(t => t.date === todayStr);
+                const container = document.getElementById('today-tasks-container');
+                if(todayTasks.length === 0) {
+                    container.innerHTML = '<div style="color:var(--text-sec); font-style:italic;">Hôm nay không có lịch đăng video. Xõa đi! 🎮</div>';
+                } else {
+                    container.innerHTML = this.generateTaskHTML(todayTasks);
+                }
+            },
+
+            // --- CALENDAR LOGIC ---
+            changeMonth(delta) {
+                this.currentDate.setMonth(this.currentDate.getMonth() + delta);
+                this.renderCalendar();
+            },
+
+            renderCalendar() {
+                const year = this.currentDate.getFullYear();
+                const month = this.currentDate.getMonth();
+                document.getElementById('month-year-display').innerText = `Tháng ${month + 1}, ${year}`;
+
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                
+                // Chỉnh Thứ 2 là đầu tuần (JS mặc định CN là 0)
+                const startOffset = firstDay === 0 ? 6 : firstDay - 1; 
+
+                const grid = document.querySelector('.calendar-grid');
+                // Giữ lại 7 ngày đầu tiên (T2-CN)
+                grid.innerHTML = `<div class="day-name">T2</div><div class="day-name">T3</div><div class="day-name">T4</div><div class="day-name">T5</div><div class="day-name">T6</div><div class="day-name">T7</div><div class="day-name">CN</div>`;
+
+                const todayStr = new Date().toISOString().split('T')[0];
+
+                // Render ô trống đầu tháng
+                for (let i = 0; i < startOffset; i++) {
+                    grid.innerHTML += `<div class="day-cell other-month"></div>`;
+                }
+
+                // Render các ngày trong tháng
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+                    const isToday = dateStr === todayStr;
+                    const isSelected = dateStr === this.selectedDateStr;
+                    
+                    // Có task không?
+                    const dayTasks = this.data.tasks.filter(t => t.date === dateStr);
+                    const dots = dayTasks.slice(0, 3).map(t => `<div class="dot" style="background: var(--${t.type}-color)"></div>`).join('');
+
+                    grid.innerHTML += `
+                        <div class="day-cell ${isToday ? 'today' : ''} ${isSelected && !isToday ? 'selected' : ''}" 
+                             onclick="app.selectDate('${dateStr}')">
+                            ${i}
+                            <div class="day-dots">${dots}</div>
+                        </div>
+                    `;
+                }
+            },
+
+            selectDate(dateStr) {
+                this.selectedDateStr = dateStr;
+                if(navigator.vibrate) navigator.vibrate(20);
+                this.renderCalendar();
+                this.renderSelectedDayTasks();
+            },
+
+            // --- TASK LOGIC ---
+            generateTaskHTML(tasks) {
+                return tasks.map(t => {
+                    const tagStyle = `background: rgba(var(--${t.type}-rgb, 255,255,255), 0.1); color: var(--${t.type}-color);`;
+                    const typeName = t.type === 'us' ? 'US' : t.type === 'vn' ? 'Việt' : 'Vlog';
+                    const revBadge = t.rev > 0 ? `<span class="revenue-tag">+${this.formatCurrency(t.rev)}</span>` : '';
+                    
+                    return `
+                    <div class="task-item ${t.completed ? 'completed' : ''}">
+                        <div class="checkbox" onclick="app.toggleTask(${t.id}, this)">${t.completed ? '✓' : ''}</div>
+                        <div class="task-info">
+                            <div class="task-title">${t.title}</div>
+                            <div class="task-meta">
+                                <span class="tag" style="color:var(--${t.type}-color); border: 1px solid var(--${t.type}-color)">${typeName}</span>
+                                ${revBadge}
+                            </div>
+                        </div>
+                        <button style="background:none; border:none; color:var(--vn-color); font-size:18px; padding:5px; cursor:pointer;" onclick="app.deleteTask(${t.id})">✕</button>
+                    </div>`;
+                }).join('');
+            },
+
+            renderSelectedDayTasks() {
+                const parts = this.selectedDateStr.split('-');
+                document.getElementById('selected-date-title').innerText = `Chi tiết ngày ${parts[2]}/${parts[1]}`;
+                
+                const dayTasks = this.data.tasks.filter(t => t.date === this.selectedDateStr);
+                const container = document.getElementById('selected-day-tasks');
+                
+                if(dayTasks.length === 0) container.innerHTML = '<div style="color:var(--text-sec)">Trống. Bấm + để thêm công việc.</div>';
+                else container.innerHTML = this.generateTaskHTML(dayTasks);
+            },
+
+            toggleTask(id, el) {
+                if(navigator.vibrate) navigator.vibrate(50);
+                const task = this.data.tasks.find(t => t.id === id);
+                task.completed = !task.completed;
+                Storage.save(this.data);
+                
+                // Update UI Smoothly
+                const item = el.closest('.task-item');
+                if(task.completed) { item.classList.add('completed'); el.innerHTML = '✓'; } 
+                else { item.classList.remove('completed'); el.innerHTML = ''; }
+                
+                this.renderDashboard(); // Cập nhật lại tiền và %
+            },
+
+            deleteTask(id) {
+                if(confirm('Xóa video này?')) {
+                    this.data.tasks = this.data.tasks.filter(t => t.id !== id);
+                    Storage.save(this.data);
+                    this.renderSelectedDayTasks();
+                    this.renderDashboard();
+                    this.renderCalendar();
+                }
+            },
+
+            // --- MODALS & SETTINGS ---
+            openTaskModal() {
+                document.getElementById('task-date').value = this.selectedDateStr;
+                document.getElementById('task-modal').classList.add('active');
+            },
+            closeTaskModal() { 
+                document.getElementById('task-modal').classList.remove('active');
+                document.getElementById('task-title').value = '';
+                document.getElementById('task-rev').value = '';
+            },
+
+            saveTask() {
+                const title = document.getElementById('task-title').value.trim();
+                const date = document.getElementById('task-date').value;
+                const type = document.getElementById('task-type').value;
+                const rev = document.getElementById('task-rev').value;
+
+                if(!title || !date) { alert('Vui lòng nhập tên và chọn ngày!'); return; }
+
+                this.data.tasks.push({ id: Date.now(), title, date, type, rev: Number(rev) || 0, completed: false });
+                Storage.save(this.data);
+                
+                this.selectedDateStr = date; // Tự nhảy sang ngày vừa thêm
+                this.currentDate = new Date(date);
+                
+                this.closeTaskModal();
+                this.init(); // Render all
+                if(navigator.vibrate) navigator.vibrate([100]);
+            },
+
+            saveSettings() {
+                this.data.settings.workGoal = document.getElementById('setting-work-goal').value;
+                this.data.settings.revGoal = document.getElementById('setting-rev-goal').value;
+                Storage.save(this.data);
+                alert('Đã cập nhật mục tiêu thành công!');
+                this.renderDashboard();
+            }
+        };
+
+        // Start App
+        app.init();
+    </script>
+</body>
+</html>
