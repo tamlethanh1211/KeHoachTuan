@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Lịch YT">
+    <title>YouTube Weekly Planner</title>
+    
+    <!-- PWA Auto Inject -->
+    <link id="manifest-link" rel="manifest" href="">
+    <link id="apple-touch-icon" rel="apple-touch-icon" href="">
+
+    <style>
+        /* =========================================
+           CSS VARIABLES (Apple iOS Dark Theme)
+        ========================================= */
+        :root {
+            --bg-color: #000000;
+            --surface: #1C1C1E;
+            --surface-elevated: #2C2C2E;
+            --text-main: #FFFFFF;
+            --text-sec: #8E8E93;
+            --accent-green: #32D74B;
+            --us-color: #0A84FF;
+            --vn-color: #FF453A;
+            --vlog-color: #FF9F0A;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+        }
+
+        /* =========================================
+           RESET & TYPOGRAPHY
+        ========================================= */
+        * {
+            box-sizing: border-box;
+            margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 40px) 16px;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding-top: 10px;
+        }
+
+        /* =========================================
+           HEADER
+        ========================================= */
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px;
+        }
+        h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+        .btn-reset {
+            background: rgba(255, 69, 58, 0.15); color: var(--vn-color);
+            border: none; padding: 8px 16px; border-radius: 20px;
+            font-weight: 600; font-size: 14px; cursor: pointer;
+        }
+
+        /* =========================================
+           GOAL SECTION
+        ========================================= */
+        .goal-section {
+            background: var(--surface);
+            border: 1px solid rgba(50, 215, 75, 0.3);
+            box-shadow: 0 4px 20px rgba(50, 215, 75, 0.05);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .goal-section:active { transform: scale(0.98); }
+        .goal-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+        }
+        .goal-header h2 { font-size: 14px; font-weight: 600; color: var(--accent-green); text-transform: uppercase; letter-spacing: 0.5px;}
+        .goal-header .edit-hint { color: var(--text-sec); font-size: 13px; }
+        .goal-content p {
+            font-size: 18px; font-weight: 600; line-height: 1.4; color: #fff; white-space: pre-wrap;
+        }
+
+        /* =========================================
+           PROGRESS SECTION
+        ========================================= */
+        .progress-section {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            margin-bottom: 24px;
+        }
+        .progress-header {
+            display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center;
+        }
+        .progress-header h2 { font-size: 16px; font-weight: 600; }
+        .progress-header span { color: var(--accent-green); font-weight: 700; font-size: 18px; }
+        
+        .progress-track {
+            height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%; background: linear-gradient(90deg, #30D158, #32D74B); width: 0%;
+            border-radius: 6px; transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .stats-chart {
+            display: flex; height: 6px; border-radius: 3px; margin-top: 16px; overflow: hidden; gap: 2px; background: rgba(255,255,255,0.05);
+        }
+        .stats-legend {
+            display: flex; gap: 16px; margin-top: 10px; font-size: 13px; color: var(--text-sec); justify-content: space-between;
+        }
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px;}
+
+        /* =========================================
+           CALENDAR / SCHEDULE SECTION
+        ========================================= */
+        .day-group { margin-bottom: 24px; }
+        .day-title-row {
+            padding: 0 8px 8px 8px; display: flex; align-items: center; gap: 10px;
+        }
+        .day-title-row h3 { font-size: 19px; font-weight: 600; color: #fff; }
+        .today-badge {
+            background: var(--accent-green); color: #000; padding: 3px 8px;
+            border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+        }
+
+        .task-list-box {
+            background: var(--surface); border-radius: var(--radius-lg); overflow: hidden;
+        }
+
+        .task-item {
+            display: flex; align-items: center; padding: 14px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.08); gap: 14px; transition: background 0.2s;
+        }
+        .task-item:last-child { border-bottom: none; }
+        
+        .checkbox {
+            width: 26px; height: 26px; border: 2px solid var(--text-sec); border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+        }
+        .task-item.completed .checkbox {
+            background: var(--accent-green); border-color: var(--accent-green); color: #000; font-weight: bold;
+        }
+        .task-item.completed .task-title { text-decoration: line-through; color: var(--text-sec); }
+        
+        .task-info { flex: 1; overflow: hidden; }
+        .task-title { font-size: 16px; font-weight: 500; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 0.2s;}
+        
+        .tag {
+            font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 600; text-transform: uppercase;
+        }
+        .tag-us { background: rgba(10, 132, 255, 0.15); color: var(--us-color); }
+        .tag-vn { background: rgba(255, 69, 58, 0.15); color: var(--vn-color); }
+        .tag-vlog { background: rgba(255, 159, 10, 0.15); color: var(--vlog-color); }
+
+        .btn-delete {
+            background: none; border: none; color: var(--text-sec); font-size: 16px;
+            width: 30px; height: 30px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer;
+        }
+        .btn-delete:active { background: rgba(255,69,58,0.2); color: var(--vn-color); }
+
+        /* Add Task Button inside List */
+        .task-add-btn {
+            display: flex; align-items: center; padding: 12px 16px; gap: 14px;
+            color: var(--us-color); font-weight: 500; cursor: pointer; font-size: 16px;
+        }
+        .task-add-btn:active { background: rgba(255,255,255,0.05); }
+        .task-add-btn .add-icon {
+            width: 26px; height: 26px; border-radius: 50%; background: rgba(10, 132, 255, 0.15);
+            display: flex; justify-content: center; align-items: center; font-size: 18px; font-weight: bold;
+        }
+
+        /* =========================================
+           MODALS & TOAST
+        ========================================= */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: flex-end;
+            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        
+        .modal-content {
+            background: var(--surface-elevated); width: 100%; max-width: 600px; padding: 24px;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+
+        .input-group { margin-bottom: 16px; }
+        .input-group label { display: block; font-size: 14px; color: var(--text-sec); margin-bottom: 8px; }
+        .modal-input, .modal-select {
+            width: 100%; padding: 14px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px; color: #fff; font-size: 16px; outline: none;
+        }
+        .modal-input:focus { border-color: var(--accent-green); }
+        textarea.modal-input { resize: none; font-family: inherit; }
+        
+        .btn-save {
+            width: 100%; padding: 16px; background: var(--accent-green); color: #000;
+            border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px;
+        }
+
+        .toast {
+            position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
+            background: var(--surface-elevated); padding: 14px 24px; border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 10px;
+            z-index: 1000; transition: top 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .toast.show { top: env(safe-area-inset-top, 20px); }
+
+        @keyframes tick { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header>
+            <h1>Lịch YouTube</h1>
+            <button class="btn-reset" onclick="app.resetWeek()">Làm mới</button>
+        </header>
+
+        <!-- MỤC TIÊU TUẦN -->
+        <section class="goal-section" onclick="app.openGoalModal()">
+            <div class="goal-header">
+                <h2>🎯 Mục tiêu tuần</h2>
+                <span class="edit-hint">Chạm để sửa</span>
+            </div>
+            <div class="goal-content">
+                <p id="goal-text">Tải lên 3 video US & 2 Vlog để đạt 100k views! 🚀</p>
+            </div>
+        </section>
+
+        <!-- TIẾN ĐỘ -->
+        <section class="progress-section">
+            <div class="progress-header">
+                <h2>📈 Tiến độ hiện tại</h2>
+                <span id="progress-text">0%</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" id="progress-bar"></div></div>
+            
+            <div class="stats-chart" id="stats-chart"></div>
+            
+            <div class="stats-legend">
+                <span><span class="dot" style="background:var(--us-color)"></span>US: <strong id="count-us">0</strong></span>
+                <span><span class="dot" style="background:var(--vn-color)"></span>Việt: <strong id="count-vn">0</strong></span>
+                <span><span class="dot" style="background:var(--vlog-color)"></span>Vlog: <strong id="count-vlog">0</strong></span>
+            </div>
+        </section>
+
+        <!-- CHI TIẾT TỪNG NGÀY (LỊCH DỌC) -->
+        <section class="schedule-section" id="schedule-container">
+            <!-- JS Tự động render lịch ở đây -->
+        </section>
+    </div>
+
+    <!-- Modal: Sửa Mục Tiêu -->
+    <div class="modal-overlay" id="goal-modal" onclick="if(event.target===this) app.closeGoalModal()">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 20px;">Sửa Mục Tiêu Tuần</h2>
+            <div class="input-group">
+                <textarea id="goal-input" class="modal-input" rows="4" placeholder="Nhập mục tiêu của bạn..."></textarea>
+            </div>
+            <button class="btn-save" onclick="app.saveGoal()">Lưu Thay Đổi</button>
+        </div>
+    </div>
+
+    <!-- Modal: Thêm Task -->
+    <div class="modal-overlay" id="task-modal" onclick="if(event.target===this) app.closeTaskModal()">
+        <div class="modal-content">
+            <h2 id="task-modal-title" style="margin-bottom: 20px;">Thêm Video</h2>
+            <div class="input-group">
+                <label>Tên Video / Tiêu đề</label>
+                <input type="text" id="task-title" class="modal-input" placeholder="Nhập tên video..." autocomplete="off">
+            </div>
+            <div class="input-group">
+                <label>Phân loại</label>
+                <select id="task-type" class="modal-select">
+                    <option value="us">Video US (Mỹ)</option>
+                    <option value="vn">Video Việt Nam</option>
+                    <option value="vlog">Quay Vlog</option>
+                </select>
+            </div>
+            <button class="btn-save" onclick="app.saveTask()">Lưu Video</button>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <span style="color: var(--accent-green)">✅</span>
+        <span id="toast-msg">Thành công!</span>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. TẠO APP ICON & MANIFEST ẢO CHO PWA
+        // ==========================================
+        (function setupPWA() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            // Vẽ nền đen viền xanh
+            ctx.fillStyle = '#000'; ctx.fillRect(0,0,512,512);
+            ctx.fillStyle = '#32D74B'; ctx.beginPath(); ctx.roundRect(20, 20, 472, 472, 100); ctx.fill();
+            // Vẽ Text
+            ctx.fillStyle = '#000'; ctx.font = 'bold 220px -apple-system, Arial'; 
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('YT', 256, 280);
+            
+            const iconDataUrl = canvas.toDataURL('image/png');
+            document.getElementById('apple-touch-icon').href = iconDataUrl;
+
+            const manifest = {
+                "name": "YouTube Planner", "short_name": "Lịch YT",
+                "start_url": ".", "display": "standalone",
+                "background_color": "#000000", "theme_color": "#1C1C1E",
+                "icons": [{ "src": iconDataUrl, "sizes": "512x512", "type": "image/png" }]
+            };
+            const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+            document.getElementById('manifest-link').href = URL.createObjectURL(blob);
+        })();
+
+        // ==========================================
+        // 2. HARDWARE APIS (Rung & Âm thanh)
+        // ==========================================
+        const Hardware = {
+            vibrate(pattern = [50]) {
+                if (navigator.vibrate) navigator.vibrate(pattern);
+            },
+            playClickSound() {
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if(!AudioContext) return;
+                    const ctx = new AudioContext();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1500, ctx.currentTime + 0.04);
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.04);
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.start(); osc.stop(ctx.currentTime + 0.04);
+                } catch(e) {}
+            }
+        };
+
+        // ==========================================
+        // 3. QUẢN LÝ DỮ LIỆU (Local Storage)
+        // ==========================================
+        const STORAGE_KEY = 'yt_planner_v2';
+        const DAYS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'];
+        const todayIndex = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+
+        class AppState {
+            constructor() {
+                this.data = this.loadData();
+            }
+            loadData() {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) return JSON.parse(raw);
+                return {
+                    goal: "Tải lên 3 video US & 2 Vlog để đạt 100k views! 🚀",
+                    tasks: Array.from({length: 7}, () => [])
+                };
+            }
+            saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); }
+            
+            updateGoal(text) { this.data.goal = text; this.saveData(); }
+            
+            addTask(dayIndex, title, type) {
+                this.data.tasks[dayIndex].push({ id: Date.now(), title, type, completed: false });
+                this.saveData();
+            }
+            
+            toggleTask(dayIndex, taskId) {
+                const task = this.data.tasks[dayIndex].find(t => t.id === taskId);
+                if (task) {
+                    task.completed = !task.completed;
+                    this.saveData();
+                    return task.completed;
+                }
+            }
+            
+            deleteTask(dayIndex, taskId) {
+                this.data.tasks[dayIndex] = this.data.tasks[dayIndex].filter(t => t.id !== taskId);
+                this.saveData();
+            }
+            
+            getStats() {
+                let total = 0, completed = 0, us = 0, vn = 0, vlog = 0;
+                this.data.tasks.forEach(day => {
+                    day.forEach(t => {
+                        total++;
+                        if (t.completed) completed++;
+                        if (t.type === 'us') us++;
+                        if (t.type === 'vn') vn++;
+                        if (t.type === 'vlog') vlog++;
+                    });
+                });
+                return { total, completed, us, vn, vlog, percent: total === 0 ? 0 : Math.round((completed/total)*100) };
+            }
+        }
+
+        // ==========================================
+        // 4. LOGIC GIAO DIỆN & TƯƠNG TÁC
+        // ==========================================
+        const state = new AppState();
+        let currentAddDayIndex = 0; // Lưu vị trí ngày đang muốn thêm task
+
+        const app = {
+            init() {
+                document.getElementById('goal-text').innerText = state.data.goal;
+                this.renderSchedule();
+                this.updateStats();
+            },
+
+            // --- Render Lịch Dọc ---
+            renderSchedule() {
+                const container = document.getElementById('schedule-container');
+                container.innerHTML = '';
+                
+                DAYS.forEach((dayName, dayIndex) => {
+                    const isToday = dayIndex === todayIndex;
+                    const dayTasks = state.data.tasks[dayIndex];
+                    
+                    // HTML Danh sách Task
+                    let tasksHtml = dayTasks.map(t => {
+                        const tagLabel = t.type === 'us' ? 'US' : t.type === 'vn' ? 'Việt' : 'Vlog';
+                        return `
+                            <div class="task-item ${t.completed ? 'completed' : ''}">
+                                <div class="checkbox" onclick="app.toggleTask(${dayIndex}, ${t.id}, this)">
+                                    ${t.completed ? '✓' : ''}
+                                </div>
+                                <div class="task-info">
+                                    <div class="task-title">${t.title}</div>
+                                    <span class="tag tag-${t.type}">${tagLabel}</span>
+                                </div>
+                                <button class="btn-delete" onclick="app.deleteTask(${dayIndex}, ${t.id})">✕</button>
+                            </div>
+                        `;
+                    }).join('');
+
+                    // Nút Thêm (luôn nằm cuối mỗi ngày)
+                    const addBtnHtml = `
+                        <div class="task-add-btn" onclick="app.openTaskModal(${dayIndex})">
+                            <div class="add-icon">+</div> Thêm video
+                        </div>
+                    `;
+
+                    // Gắn vào DOM
+                    const groupHtml = `
+                        <div class="day-group">
+                            <div class="day-title-row">
+                                <h3>${dayName}</h3>
+                                ${isToday ? '<span class="today-badge">Hôm nay</span>' : ''}
+                            </div>
+                            <div class="task-list-box">
+                                ${tasksHtml}
+                                ${addBtnHtml}
+                            </div>
+                        </div>
+                    `;
+                    container.insertAdjacentHTML('beforeend', groupHtml);
+                });
+            },
+
+            // --- Cập nhật thanh Tiến độ ---
+            updateStats() {
+                const stats = state.getStats();
+                document.getElementById('progress-bar').style.width = `${stats.percent}%`;
+                document.getElementById('progress-text').innerText = `${stats.percent}%`;
+                document.getElementById('count-us').innerText = stats.us;
+                document.getElementById('count-vn').innerText = stats.vn;
+                document.getElementById('count-vlog').innerText = stats.vlog;
+
+                // Cập nhật biểu đồ Mini Bar
+                const chart = document.getElementById('stats-chart');
+                chart.innerHTML = '';
+                if(stats.total > 0) {
+                    const addBar = (count, color) => {
+                        if(count === 0) return;
+                        const div = document.createElement('div');
+                        div.style.width = `${(count/stats.total)*100}%`;
+                        div.style.background = color; div.style.height = '100%';
+                        chart.appendChild(div);
+                    }
+                    addBar(stats.us, 'var(--us-color)');
+                    addBar(stats.vn, 'var(--vn-color)');
+                    addBar(stats.vlog, 'var(--vlog-color)');
+                }
+            },
+
+            // --- Hành động Task ---
+            toggleTask(dayIndex, taskId, el) {
+                Hardware.playClickSound();
+                Hardware.vibrate([50]);
+                
+                const isCompleted = state.toggleTask(dayIndex, taskId);
+                const item = el.closest('.task-item');
+                
+                // Update DOM trực tiếp mượt mà, không cần load lại toàn bộ ngày
+                if(isCompleted) {
+                    item.classList.add('completed');
+                    el.innerHTML = '✓';
+                    el.style.animation = 'tick 0.3s ease';
+                } else {
+                    item.classList.remove('completed');
+                    el.innerHTML = '';
+                    el.style.animation = 'none';
+                }
+                this.updateStats();
+            },
+
+            deleteTask(dayIndex, taskId) {
+                if(confirm('Bạn có chắc muốn xóa video này khỏi lịch?')) {
+                    Hardware.vibrate([30, 30, 30]);
+                    state.deleteTask(dayIndex, taskId);
+                    this.renderSchedule();
+                    this.updateStats();
+                }
+            },
+
+            resetWeek() {
+                if(confirm('Làm mới toàn bộ lịch trình tuần này? Dữ liệu sẽ bị xóa sạch.')) {
+                    state.data.tasks = Array.from({length: 7}, () => []);
+                    state.saveData();
+                    this.renderSchedule();
+                    this.updateStats();
+                    this.showToast('Đã làm mới lịch!');
+                }
+            },
+
+            // --- Modal Mục Tiêu (Goal) ---
+            openGoalModal() {
+                Hardware.playClickSound();
+                document.getElementById('goal-input').value = state.data.goal;
+                document.getElementById('goal-modal').classList.add('active');
+                setTimeout(() => document.getElementById('goal-input').focus(), 100);
+            },
+            closeGoalModal() { document.getElementById('goal-modal').classList.remove('active'); },
+            saveGoal() {
+                const val = document.getElementById('goal-input').value.trim();
+                if(val) {
+                    state.updateGoal(val);
+                    document.getElementById('goal-text').innerText = val;
+                }
+                this.closeGoalModal();
+                Hardware.vibrate([50]);
+            },
+
+            // --- Modal Task ---
+            openTaskModal(dayIndex) {
+                currentAddDayIndex = dayIndex;
+                Hardware.playClickSound();
+                document.getElementById('task-modal-title').innerText = `Thêm Video - ${DAYS[dayIndex]}`;
+                document.getElementById('task-modal').classList.add('active');
+                setTimeout(() => document.getElementById('task-title').focus(), 100);
+            },
+            closeTaskModal() { 
+                document.getElementById('task-modal').classList.remove('active'); 
+                document.getElementById('task-title').value = '';
+            },
+            saveTask() {
+                const title = document.getElementById('task-title').value.trim();
+                const type = document.getElementById('task-type').value;
+                if(!title) { alert('Vui lòng nhập tên video!'); return; }
+                
+                state.addTask(currentAddDayIndex, title, type);
+                this.renderSchedule();
+                this.updateStats();
+                this.closeTaskModal();
+                
+                Hardware.playClickSound();
+                Hardware.vibrate([100]);
+                this.showToast('Đã thêm video thành công!');
+            },
+
+            // --- Toast ---
+            showToast(msg) {
+                const toast = document.getElementById('toast');
+                document.getElementById('toast-msg').innerText = msg;
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2500);
+            }
+        };
+
+        // Khởi động
+        app.init();
+    </script>
+</body>
+</html>
