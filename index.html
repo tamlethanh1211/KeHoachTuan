@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="YT Master">
+    <title>YouTube Production Master V4</title>
+    
+    <link id="manifest-link" rel="manifest" href="">
+    <link id="apple-touch-icon" rel="apple-touch-icon" href="">
+
+    <style>
+        :root {
+            --bg-base: #0A0A0C;
+            --surface: #16161A;
+            --surface-glass: rgba(26, 26, 32, 0.75);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --text-main: #FFFFFF;
+            --text-sec: #8E8E93;
+            --accent-green: #30D158;
+            --accent-blue: #0A84FF;
+            --accent-purple: #BF5AF2;
+            --accent-red: #FF453A;
+            --accent-orange: #FF9F0A;
+            --radius-lg: 20px;
+            --radius-md: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg-base); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; }
+
+        /* LAYOUT */
+        .sidebar { width: 260px; background: #121215; border-right: 1px solid var(--border-glass); padding: env(safe-area-inset-top, 20px) 16px 20px 16px; display: flex; flex-direction: column; gap: 8px; z-index: 50; }
+        .main-content { flex: 1; height: 100vh; overflow-y: auto; padding: env(safe-area-inset-top, 20px) 20px 100px 20px; }
+
+        .logo { font-size: 20px; font-weight: 800; padding: 12px 16px; margin-bottom: 12px; }
+        .logo span { color: var(--accent-green); }
+
+        .nav-btn { padding: 12px 16px; border-radius: var(--radius-md); font-weight: 600; font-size: 15px; color: var(--text-sec); cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s; }
+        .nav-btn.active { background: rgba(255,255,255,0.1); color: var(--text-main); }
+
+        .bottom-nav { display: none; }
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { padding: env(safe-area-inset-top, 20px) 12px 120px 12px; }
+            .bottom-nav {
+                display: flex; justify-content: space-around; position: fixed; bottom: 0; left: 0; right: 0;
+                padding-bottom: env(safe-area-inset-bottom, 16px); height: calc(65px + env(safe-area-inset-bottom, 16px));
+                background: rgba(18, 18, 21, 0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+                border-top: 1px solid var(--border-glass); z-index: 50;
+            }
+            .bottom-nav .nav-btn { flex-direction: column; gap: 3px; padding: 8px; font-size: 11px; background: none !important; }
+            .bottom-nav .nav-btn.active { color: var(--accent-green); }
+            .bottom-nav .nav-btn i { font-size: 20px; }
+        }
+
+        /* CARDS & UI */
+        .card { background: var(--surface-glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: 18px; margin-bottom: 20px; }
+        .view-page { display: none; }
+        .view-page.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* DASHBOARD COUNTERS */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 16px; position: relative; }
+        .stat-value { font-size: 26px; font-weight: 800; margin: 6px 0; }
+
+        /* WEEKLY GRID & MULTI-DAY TASKS */
+        .week-selector { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; background: var(--surface); padding: 8px 16px; border-radius: var(--radius-md); }
+        .btn-arrow { background: none; border: none; color: var(--accent-green); font-size: 20px; font-weight: bold; cursor: pointer; padding: 4px 12px; }
+
+        .weekly-grid { display: flex; flex-direction: column; gap: 16px; }
+        @media (min-width: 1024px) { .weekly-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; } }
+
+        .day-card { background: var(--surface); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 14px; display: flex; flex-direction: column; gap: 10px; min-height: 130px; }
+        .day-card.is-today { border-color: var(--accent-green); background: rgba(48, 209, 88, 0.04); }
+        .day-card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; }
+
+        /* VIDEO TASK CARD */
+        .video-card {
+            background: rgba(255,255,255,0.05); border-radius: var(--radius-md); padding: 12px; border: 1px solid var(--border-glass);
+            display: flex; flex-direction: column; gap: 8px; position: relative; transition: all 0.2s;
+        }
+        .video-card.multi-day { border-left: 3px solid var(--accent-blue); }
+        .video-card.completed { opacity: 0.5; }
+
+        .badges-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+        .badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase; }
+        .badge-us { background: rgba(10, 132, 255, 0.2); color: var(--accent-blue); }
+        .badge-vn { background: rgba(255, 69, 58, 0.2); color: var(--accent-red); }
+        .badge-vlog { background: rgba(255, 159, 10, 0.2); color: var(--accent-orange); }
+        .badge-range { background: rgba(191, 90, 242, 0.2); color: var(--accent-purple); font-size: 10px; }
+
+        .pipeline-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 4px; }
+        .step-btn { background: rgba(255,255,255,0.06); border: none; color: var(--text-sec); padding: 5px 0; border-radius: 4px; font-size: 10px; font-weight: 600; text-align: center; cursor: pointer; }
+        .step-btn.done { background: var(--accent-green); color: #000; }
+
+        .btn-add-day { background: none; border: 1px dashed var(--border-glass); color: var(--text-sec); padding: 8px; border-radius: var(--radius-md); font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; margin-top: auto; }
+
+        /* PROGRESS BARS */
+        .progress-bar-bg { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+        .progress-bar-fill { height: 100%; background: var(--accent-green); width: 0%; transition: width 0.5s ease; }
+
+        /* iOS MONTHLY CALENDAR GRID */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+        .cal-head { font-size: 12px; color: var(--text-sec); font-weight: 600; padding: 8px 0; }
+        .cal-day { aspect-ratio: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 50%; font-size: 14px; font-weight: 600; cursor: pointer; position: relative; }
+        .cal-day.is-today { background: var(--accent-green); color: #000; }
+        .cal-day .dots { display: flex; gap: 2px; position: absolute; bottom: 3px; }
+        .cal-day .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent-blue); }
+
+        /* FAB & MODAL */
+        .fab { position: fixed; bottom: calc(80px + env(safe-area-inset-bottom, 16px)); right: 20px; width: 56px; height: 56px; border-radius: 28px; background: var(--accent-green); color: #000; font-size: 28px; border: none; font-weight: bold; box-shadow: 0 4px 20px rgba(48, 209, 88, 0.4); z-index: 40; }
+        @media (min-width: 769px) { .fab { bottom: 30px; right: 30px; } }
+
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(10px); display: flex; justify-content: center; align-items: flex-end; z-index: 100; opacity: 0; pointer-events: none; transition: 0.3s; }
+        .modal.active { opacity: 1; pointer-events: auto; }
+        .modal-body { background: #1C1C21; width: 100%; max-width: 550px; padding: 24px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; border: 1px solid var(--border-glass); transform: translateY(100%); transition: 0.3s ease; }
+        .modal.active .modal-body { transform: translateY(0); }
+        
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 12px; color: var(--text-sec); margin-bottom: 6px; text-transform: uppercase; font-weight: 700; }
+        .form-input { width: 100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-glass); border-radius: 10px; color: #fff; font-size: 15px; outline: none; }
+        .form-row { display: flex; gap: 10px; } .form-row > div { flex: 1; }
+        .btn-submit { width: 100%; padding: 14px; background: var(--accent-green); color: #000; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+        <div class="logo">YT MASTER <span>V4</span></div>
+        <div class="nav-btn active" onclick="app.nav('dashboard')"><i>📊</i> Tổng quan & Mục tiêu</div>
+        <div class="nav-btn" onclick="app.nav('weekly')"><i>🗓️</i> Lịch Tuần (Range Date)</div>
+        <div class="nav-btn" onclick="app.nav('monthly')"><i>📆</i> Lịch Tháng iOS</div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        
+        <!-- PAGE 1: TỔNG QUAN & MỤC TIÊU -->
+        <section id="page-dashboard" class="view-page active">
+            <h2 style="margin-bottom: 16px;">Báo Cáo Tiến Độ Tuần Này</h2>
+            
+            <div class="stats-grid">
+                <!-- ĐẾM MỤC TIÊU VIDEO TUẦN -->
+                <div class="stat-card">
+                    <div style="font-size:12px; color:var(--text-sec); font-weight:700;">MỤC TIÊU VIDEO / TUẦN</div>
+                    <div class="stat-value"><span id="dash-week-done" style="color:var(--accent-green)">0</span> / <span id="dash-week-target">5</span> <span style="font-size:14px; font-weight:normal; color:var(--text-sec)">Video</span></div>
+                    <div class="progress-bar-bg"><div class="progress-bar-fill" id="dash-week-bar"></div></div>
+                    <button style="margin-top:10px; background:none; border:none; color:var(--accent-blue); font-size:12px; font-weight:bold; cursor:pointer;" onclick="app.editWeeklyTarget()">⚙️ Đổi mục tiêu tuần</button>
+                </div>
+
+                <!-- DOANH THU THÁNG -->
+                <div class="stat-card">
+                    <div style="font-size:12px; color:var(--text-sec); font-weight:700;">DOANH THU THÁNG NÀY</div>
+                    <div class="stat-value" style="color:var(--accent-green)" id="dash-rev-actual">0đ</div>
+                    <div style="font-size:12px; color:var(--text-sec)">Target: <span id="dash-rev-target">10.000.000đ</span></div>
+                    <div class="progress-bar-bg"><div class="progress-bar-fill" id="dash-rev-bar" style="background:var(--accent-blue)"></div></div>
+                </div>
+            </div>
+
+            <!-- NHIỆM VỤ HÔM NAY -->
+            <div class="card">
+                <h3 style="margin-bottom: 12px; font-size:16px;">🔥 Lịch Trình Hôm Nay</h3>
+                <div id="today-tasks-container"></div>
+            </div>
+        </section>
+
+        <!-- PAGE 2: LỊCH TUẦN (WEEKLY PIPELINE) -->
+        <section id="page-weekly" class="view-page">
+            <div class="week-selector">
+                <button class="btn-arrow" onclick="app.changeWeek(-1)">‹</button>
+                <span id="week-label-display" style="font-weight: 700; font-size: 15px;">Tuần này</span>
+                <button class="btn-arrow" onclick="app.changeWeek(1)">›</button>
+            </div>
+
+            <div class="weekly-grid" id="weekly-grid-container">
+                <!-- JS Render 7 Ngày -->
+            </div>
+        </section>
+
+        <!-- PAGE 3: LỊCH THÁNG (MONTHLY CALENDAR) -->
+        <section id="page-monthly" class="view-page">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                    <button class="btn-arrow" onclick="app.changeMonth(-1)">‹</button>
+                    <h2 id="month-title-display" style="font-size: 18px;">Tháng 7, 2026</h2>
+                    <button class="btn-arrow" onclick="app.changeMonth(1)">›</button>
+                </div>
+                <div class="calendar-grid" id="monthly-grid-container"></div>
+            </div>
+            <h3 style="margin-bottom: 12px; font-size: 16px;" id="selected-day-title">Chi tiết ngày</h3>
+            <div id="monthly-day-tasks"></div>
+        </section>
+
+    </main>
+
+    <!-- BOTTOM TAB (Mobile) -->
+    <nav class="bottom-nav">
+        <div class="nav-btn active" onclick="app.nav('dashboard')"><i>📊</i> Tổng quan</div>
+        <div class="nav-btn" onclick="app.nav('weekly')"><i>🗓️</i> Lịch Tuần</div>
+        <div class="nav-btn" onclick="app.nav('monthly')"><i>📆</i> Lịch Tháng</div>
+    </nav>
+
+    <!-- FAB -->
+    <button class="fab" onclick="app.openModal()">+</button>
+
+    <!-- MODAL ADD / EDIT VIDEO -->
+    <div class="modal" id="add-modal" onclick="if(event.target===this) app.closeModal()">
+        <div class="modal-body">
+            <h3 id="modal-title" style="margin-bottom: 16px;">Thêm / Sửa Lịch Video</h3>
+            
+            <div class="form-group">
+                <label>Tiêu đề Video / Nhiệm vụ</label>
+                <input type="text" id="input-title" class="form-input" placeholder="Nhập tên video..." autocomplete="off">
+            </div>
+
+            <!-- CHỌN KHOẢNG NGÀY (RANGE DATES CỦA IOS) -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Ngày bắt đầu</label>
+                    <input type="date" id="input-start-date" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Ngày kết thúc</label>
+                    <input type="date" id="input-end-date" class="form-input">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Phân loại</label>
+                    <select id="input-type" class="form-input">
+                        <option value="us">🇺🇸 Video US</option>
+                        <option value="vn">🇻🇳 Video Việt</option>
+                        <option value="vlog">📹 Vlog</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ưu Tiên</label>
+                    <select id="input-priority" class="form-input">
+                        <option value="normal">🟢 Thường</option>
+                        <option value="high">🔴 Gấp / Đặt Hàng</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Dự kiến Doanh thu (VND)</label>
+                <input type="number" id="input-rev" class="form-input" placeholder="0">
+            </div>
+
+            <button class="btn-submit" onclick="app.saveVideo()">Lưu Lịch Sản Xuất</button>
+        </div>
+    </div>
+
+    <script>
+        // PWA Setup
+        (function setupPWA() {
+            const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d'); ctx.fillStyle = '#0A0A0C'; ctx.fillRect(0,0,512,512);
+            ctx.fillStyle = '#30D158'; ctx.beginPath(); ctx.roundRect(30, 30, 452, 452, 100); ctx.fill();
+            ctx.fillStyle = '#000'; ctx.font = 'bold 220px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('YT', 256, 270);
+            const iconDataUrl = canvas.toDataURL('image/png'); document.getElementById('apple-touch-icon').href = iconDataUrl;
+            const manifest = { "name": "YT Master", "short_name": "YT Master", "start_url": ".", "display": "standalone", "background_color": "#0A0A0C", "theme_color": "#0A0A0C", "icons": [{ "src": iconDataUrl, "sizes": "512x512", "type": "image/png" }] };
+            document.getElementById('manifest-link').href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/json' }));
+        })();
+
+        // DATA ENGINE & AUTO-MIGRATION (BẢO VỆ DỮ LIỆU CŨ)
+        const Storage = {
+            get() {
+                let data = JSON.parse(localStorage.getItem('yt_master_v3')) || 
+                           JSON.parse(localStorage.getItem('yt_pro_db')) || 
+                           { targetRev: 10000000, targetWeeklyVids: 5, tasks: [] };
+                
+                if(!data.targetWeeklyVids) data.targetWeeklyVids = 5;
+                
+                // MIGRATION: Chuyển task cũ thành định dạng Range Date (startDate / endDate)
+                data.tasks = data.tasks.map(t => {
+                    if(t.date && !t.startDate) {
+                        t.startDate = t.date;
+                        t.endDate = t.date;
+                    }
+                    return t;
+                });
+                return data;
+            },
+            save(data) { localStorage.setItem('yt_master_v3', JSON.stringify(data)); }
+        };
+
+        const DAYS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
+
+        const app = {
+            data: Storage.get(),
+            editingTaskId: null,
+            activeWeekOffset: 0,
+            activeMonthDate: new Date(),
+            selectedDateStr: new Date().toISOString().split('T')[0],
+
+            init() {
+                this.renderDashboard();
+                this.renderWeekly();
+                this.renderMonthly();
+            },
+
+            nav(pageId) {
+                document.querySelectorAll('.view-page').forEach(el => el.classList.remove('active'));
+                document.getElementById(`page-${pageId}`).classList.add('active');
+                
+                document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+                event.currentTarget.classList.add('active');
+
+                if(pageId === 'dashboard') this.renderDashboard();
+            },
+
+            // KHẢO SÁT CHÍNH XÁC TASK NẰM TRONG KHOẢNG NGÀY (RANGE CHECK)
+            isTaskInDate(task, dateStr) {
+                const start = task.startDate || task.date;
+                const end = task.endDate || start;
+                return dateStr >= start && dateStr <= end;
+            },
+
+            // --- WEEKLY GRID ---
+            getWeekDates(offset = 0) {
+                const now = new Date();
+                const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1;
+                const monday = new Date(now);
+                monday.setDate(now.getDate() - dayOfWeek + (offset * 7));
+                
+                const week = [];
+                for (let i = 0; i < 7; i++) {
+                    const d = new Date(monday);
+                    d.setDate(monday.getDate() + i);
+                    week.push(d.toISOString().split('T')[0]);
+                }
+                return week;
+            },
+
+            changeWeek(delta) {
+                this.activeWeekOffset += delta;
+                this.renderWeekly();
+            },
+
+            renderWeekly() {
+                const weekDates = this.getWeekDates(this.activeWeekOffset);
+                const startDateStr = `${weekDates[0].split('-')[2]}/${weekDates[0].split('-')[1]}`;
+                const endDateStr = `${weekDates[6].split('-')[2]}/${weekDates[6].split('-')[1]}`;
+                document.getElementById('week-label-display').innerText = `Tuần ${startDateStr} - ${endDateStr}`;
+
+                const container = document.getElementById('weekly-grid-container');
+                container.innerHTML = '';
+                const todayStr = new Date().toISOString().split('T')[0];
+
+                weekDates.forEach((dateStr, index) => {
+                    const isToday = dateStr === todayStr;
+                    // Lọc task có phủ qua ngày này
+                    const tasks = this.data.tasks.filter(t => this.isTaskInDate(t, dateStr));
+
+                    const tasksHtml = tasks.map(t => {
+                        const pipe = t.pipeline || [false, false, false, false];
+                        const isDone = pipe.every(Boolean);
+                        
+                        // Check xem có phải task chạy nhiều ngày không
+                        const isMultiDay = t.startDate !== t.endDate;
+                        let rangeLabel = '';
+                        if(isMultiDay) {
+                            const startD = new Date(t.startDate);
+                            const currentD = new Date(dateStr);
+                            const dayNum = Math.round((currentD - startD)/(1000*60*60*24)) + 1;
+                            const totalDays = Math.round((new Date(t.endDate) - startD)/(1000*60*60*24)) + 1;
+                            rangeLabel = `<span class="badge badge-range">🗓️ Ngày ${dayNum}/${totalDays}</span>`;
+                        }
+
+                        return `
+                        <div class="video-card ${isMultiDay ? 'multi-day' : ''} ${isDone ? 'completed' : ''}" onclick="app.editTask(${t.id})">
+                            <div class="video-title">${t.title}</div>
+                            <div class="badges-row">
+                                <span class="badge badge-${t.type}">${t.type}</span>
+                                ${rangeLabel}
+                                ${t.priority === 'high' ? '<span class="badge" style="background:var(--accent-red); color:#000;">🔴 Gấp</span>' : ''}
+                            </div>
+                            
+                            <div class="pipeline-steps" onclick="event.stopPropagation()">
+                                <button class="step-btn ${pipe[0]?'done':''}" onclick="app.toggleStep(${t.id}, 0)">✍️ Script</button>
+                                <button class="step-btn ${pipe[1]?'done':''}" onclick="app.toggleStep(${t.id}, 1)">🎥 Quay</button>
+                                <button class="step-btn ${pipe[2]?'done':''}" onclick="app.toggleStep(${t.id}, 2)">✂️ Edit</button>
+                                <button class="step-btn ${pipe[3]?'done':''}" onclick="app.toggleStep(${t.id}, 3)">🚀 Up</button>
+                            </div>
+
+                            <button style="position:absolute; top:8px; right:8px; background:none; border:none; color:#666; font-size:12px; cursor:pointer;" onclick="event.stopPropagation(); app.deleteTask(${t.id})">✕</button>
+                        </div>`;
+                    }).join('');
+
+                    const dateDisplay = `${dateStr.split('-')[2]}/${dateStr.split('-')[1]}`;
+                    
+                    const cardHtml = `
+                    <div class="day-card ${isToday ? 'is-today' : ''}">
+                        <div class="day-card-header">
+                            <span style="font-weight:700;">${DAYS[index]}</span>
+                            <span style="font-size:12px; color:var(--text-sec);">${dateDisplay}</span>
+                        </div>
+                        ${tasksHtml}
+                        <button class="btn-add-day" onclick="app.openModal('${dateStr}')">+ Thêm lịch</button>
+                    </div>`;
+
+                    container.insertAdjacentHTML('beforeend', cardHtml);
+                });
+            },
+
+            toggleStep(taskId, stepIndex) {
+                if(navigator.vibrate) navigator.vibrate(40);
+                const task = this.data.tasks.find(t => t.id === taskId);
+                if(!task.pipeline) task.pipeline = [false, false, false, false];
+                task.pipeline[stepIndex] = !task.pipeline[stepIndex];
+                Storage.save(this.data);
+                this.renderWeekly();
+                this.renderDashboard();
+            },
+
+            // --- DASHBOARD & CẬP NHẬT MỤC TIÊU TUẦN ---
+            renderDashboard() {
+                const weekDates = this.getWeekDates(0); // Lấy 7 ngày tuần này
+                
+                // Đếm số video hoàn thành tuần này
+                const weekTasks = this.data.tasks.filter(t => weekDates.some(d => this.isTaskInDate(t, d)));
+                const completedWeekTasks = weekTasks.filter(t => t.pipeline && t.pipeline.every(Boolean));
+
+                const targetWeekVids = this.data.targetWeeklyVids || 5;
+                const doneWeekVids = completedWeekTasks.length;
+
+                document.getElementById('dash-week-done').innerText = doneWeekVids;
+                document.getElementById('dash-week-target').innerText = targetWeekVids;
+                
+                const weekPercent = Math.min(Math.round((doneWeekVids / targetWeekVids) * 100), 100);
+                document.getElementById('dash-week-bar').style.width = `${weekPercent}%`;
+
+                // Doanh thu Tháng
+                let actualRev = 0;
+                this.data.tasks.forEach(t => {
+                    if(t.pipeline && t.pipeline.every(Boolean)) actualRev += (Number(t.rev) || 0);
+                });
+
+                document.getElementById('dash-rev-actual').innerText = new Intl.NumberFormat('vi-VN').format(actualRev) + 'đ';
+                document.getElementById('dash-rev-target').innerText = new Intl.NumberFormat('vi-VN').format(this.data.targetRev) + 'đ';
+                document.getElementById('dash-rev-bar').style.width = `${Math.min(Math.round((actualRev/this.data.targetRev)*100), 100)}%`;
+
+                // Render Hôm Nay
+                const todayStr = new Date().toISOString().split('T')[0];
+                const todayTasks = this.data.tasks.filter(t => this.isTaskInDate(t, todayStr));
+                const container = document.getElementById('today-tasks-container');
+                if(todayTasks.length === 0) container.innerHTML = '<div style="color:var(--text-sec)">Hôm nay không có lịch! 🎉</div>';
+                else container.innerHTML = todayTasks.map(t => `<div class="card" style="margin-bottom:8px; padding:12px;"><strong>${t.title}</strong></div>`).join('');
+            },
+
+            editWeeklyTarget() {
+                const val = prompt('Nhập số lượng Video mục tiêu tuần này:', this.data.targetWeeklyVids);
+                if(val && !isNaN(val)) {
+                    this.data.targetWeeklyVids = Number(val);
+                    Storage.save(this.data);
+                    this.renderDashboard();
+                }
+            },
+
+            // --- MONTHLY CALENDAR ---
+            changeMonth(delta) {
+                this.activeMonthDate.setMonth(this.activeMonthDate.getMonth() + delta);
+                this.renderMonthly();
+            },
+
+            renderMonthly() {
+                const year = this.activeMonthDate.getFullYear();
+                const month = this.activeMonthDate.getMonth();
+                document.getElementById('month-title-display').innerText = `Tháng ${month + 1}, ${year}`;
+
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+
+                const grid = document.getElementById('monthly-grid-container');
+                grid.innerHTML = `<div class="cal-head">T2</div><div class="cal-head">T3</div><div class="cal-head">T4</div><div class="cal-head">T5</div><div class="cal-head">T6</div><div class="cal-head">T7</div><div class="cal-head">CN</div>`;
+
+                const todayStr = new Date().toISOString().split('T')[0];
+
+                for (let i = 0; i < startOffset; i++) grid.innerHTML += `<div></div>`;
+
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+                    const hasTasks = this.data.tasks.some(t => this.isTaskInDate(t, dateStr));
+                    const isToday = dateStr === todayStr;
+
+                    grid.innerHTML += `
+                    <div class="cal-day ${isToday ? 'is-today' : ''}" onclick="app.selectMonthlyDate('${dateStr}')">
+                        ${i}
+                        ${hasTasks ? '<div class="dots"><div class="dot"></div></div>' : ''}
+                    </div>`;
+                }
+            },
+
+            selectMonthlyDate(dateStr) {
+                this.selectedDateStr = dateStr;
+                document.getElementById('selected-day-title').innerText = `Chi tiết ngày ${dateStr.split('-')[2]}/${dateStr.split('-')[1]}`;
+                const tasks = this.data.tasks.filter(t => this.isTaskInDate(t, dateStr));
+                const container = document.getElementById('monthly-day-tasks');
+                
+                if(tasks.length === 0) container.innerHTML = '<div style="color:var(--text-sec)">Trống.</div>';
+                else container.innerHTML = tasks.map(t => `<div class="card" style="margin-bottom:8px; padding:12px;"><strong>${t.title}</strong> (${t.type.toUpperCase()})</div>`).join('');
+            },
+
+            // --- MODAL, EDIT & ADD TASK ---
+            openModal(startDateStr = null) {
+                this.editingTaskId = null;
+                document.getElementById('modal-title').innerText = "Thêm Kế Hoạch / Video Mới";
+                document.getElementById('input-title').value = '';
+                document.getElementById('input-start-date').value = startDateStr || new Date().toISOString().split('T')[0];
+                document.getElementById('input-end-date').value = startDateStr || new Date().toISOString().split('T')[0];
+                document.getElementById('input-rev').value = '';
+                document.getElementById('add-modal').classList.add('active');
+            },
+
+            editTask(id) {
+                const task = this.data.tasks.find(t => t.id === id);
+                if(!task) return;
+                
+                this.editingTaskId = id;
+                document.getElementById('modal-title').innerText = "Chỉnh Sửa Kế Hoạch";
+                document.getElementById('input-title').value = task.title;
+                document.getElementById('input-start-date').value = task.startDate || task.date;
+                document.getElementById('input-end-date').value = task.endDate || task.date;
+                document.getElementById('input-type').value = task.type;
+                document.getElementById('input-priority').value = task.priority || 'normal';
+                document.getElementById('input-rev').value = task.rev || '';
+                
+                document.getElementById('add-modal').classList.add('active');
+            },
+
+            closeModal() { document.getElementById('add-modal').classList.remove('active'); },
+
+            saveVideo() {
+                const title = document.getElementById('input-title').value.trim();
+                const startDate = document.getElementById('input-start-date').value;
+                const endDate = document.getElementById('input-end-date').value || startDate;
+                const type = document.getElementById('input-type').value;
+                const priority = document.getElementById('input-priority').value;
+                const rev = document.getElementById('input-rev').value;
+
+                if(!title || !startDate) { alert('Vui lòng nhập tiêu đề và ngày bắt đầu!'); return; }
+                if(endDate < startDate) { alert('Ngày kết thúc không được nhỏ hơn ngày bắt đầu!'); return; }
+
+                if(this.editingTaskId) {
+                    // Cập nhật Task cũ
+                    const task = this.data.tasks.find(t => t.id === this.editingTaskId);
+                    task.title = title;
+                    task.startDate = startDate;
+                    task.endDate = endDate;
+                    task.type = type;
+                    task.priority = priority;
+                    task.rev = Number(rev) || 0;
+                } else {
+                    // Thêm Task mới
+                    this.data.tasks.push({
+                        id: Date.now(), title, startDate, endDate, type, priority, rev: Number(rev) || 0,
+                        pipeline: [false, false, false, false]
+                    });
+                }
+
+                Storage.save(this.data);
+                this.closeModal();
+                this.renderWeekly();
+                this.renderMonthly();
+                this.renderDashboard();
+            },
+
+            deleteTask(id) {
+                if(confirm('Xóa nhiệm vụ này?')) {
+                    this.data.tasks = this.data.tasks.filter(t => t.id !== id);
+                    Storage.save(this.data);
+                    this.renderWeekly();
+                    this.renderMonthly();
+                    this.renderDashboard();
+                }
+            }
+        };
+
+        app.init();
+    </script>
+</body>
+</html>
